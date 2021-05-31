@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Deploy Codepipeline which zips branch from Github to S3 bucket
+Parameters:
+  CodePipelineServiceRole:
+    Type: String
+    Default: "arn:aws:iam::832167807522:role/service-role/AWSCodePipelineServiceRole-us-east-1-mcServerPipeline"
+  ArtifactStoreS3Location:
+    Type: String
+    Default: "us-east-1"
+  CodeStarConnection:
+    Type: String
+    Default: "arn:aws:codestar-connections:us-east-1:832167807522:connection/65f009e9-5bd5-4047-9fe1-3cd99314776d"
+Resources: 
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline 
+    Properties: 
+      RoleArn:
+        Ref: CodePipelineServiceRole 
+      Stages: 
+        - 
+          Name: Source 
+          Actions: 
+            - 
+              Name: SourceAction
+              ActionTypeId: 
+                Category: Source 
+                Owner: AWS 
+                Version: 1 
+                Provider: CodeStarSourceConnection
+              OutputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1 
+              Configuration:
+                ConnectionArn: !Ref CodeStarConnection
+                FullRepositoryId: "charles-large/Discord-Bot-Deploy"
+                BranchName: "master"
+                OutputArtifactFormat: "CODE_ZIP"
+        -
+          Name: Deploy
+          Actions:
+            -
+              Name: Deploy-S3
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: S3
+                Version: 1
+              InputArtifacts:
+                - Name: SourceArtifact
+              Configuration:
+                BucketName: discordbot-lambdazip
+                Extract: false
+                ObjectKey: DiscordApp.zip
+
+      ArtifactStore: 
+        Type: S3 
+        Location: codepipeline-us-east-1-464474602023
+      
+      

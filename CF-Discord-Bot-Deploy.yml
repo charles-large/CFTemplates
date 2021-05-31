@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Deploy Ec2 instance hosting minecraft server
+Parameters:
+  ImageId: 
+    Type: String
+    Default: "ami-0d5eff06f840b45e9"
+  InstanceType:
+    Type: String 
+    Default: "t2.micro"
+  KeyName:
+    Type: String
+    Default: "Deploy" 
+Resources:
+  mcServerSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "us-east-1a"
+      CidrBlock: "172.31.10.0/24"
+      VpcId: "vpc-eef77e93"
+      MapPublicIpOnLaunch: true
+  mcServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: "us-east-1a"
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroupIds: ["sg-08dafcb6cb310ee66"]
+      SubnetId: !Ref mcServerSubnet
+      UserData:
+        !Base64 |
+        #!/bin/bash
+        sudo yum install java-1.8.0-openjdk -y
+        sudo apt install wget -y
+        mkdir /mcServer
+        sudo mount -U 4c23fc44-86f8-4df1-ba7c-40a6995e9b95 /mcServer
+        cd /mcServer
+        wget https://launcher.mojang.com/v1/objects/1b557e7b033b583cd9f66746b7a9ab1ec1673ced/server.jar
+        mv server.jar minecraft_server.1.16.5.jar
+        echo "eula=true" > eula.txt
+        sudo java -Xmx500M -Xms500M -jar minecraft_server.1.16.5.jar nogui &
+      Volumes:
+      - 
+        Device: "/dev/sdh"
+        VolumeId: "vol-09bed426a2dccafb1"
+    
+
+
+      
+          
+
