@@ -51,6 +51,10 @@ Resources:
       - 
         Device: "/dev/sdh"
         VolumeId: "vol-09bed426a2dccafb1"
+    Outputs:
+      ServerIP:
+        Description: "IP address of the server provisioned"
+        Value: !GetAtt mcServerInstance.ElasticIP
     
 
 
