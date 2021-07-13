@@ -5,6 +5,11 @@ Parameters:
   ImageId: 
     Type: AWS::EC2::Image::Id
     Default: "ami-0d5eff06f840b45e9"
+  LaunchScript:
+    Type: String
+    Default: "fresh"
+    AllowedValues:
+      - '{{resolve:ssm-secure:freshInstallBashScript:1}}'
   InstanceType:
     Type: String
     Default: "t2.micro"
@@ -12,6 +17,7 @@ Parameters:
       - t2.micro
       - t2.medium
       - t2.large
+      - t3.xlarge
   AvailabilityZone:
     Type: AWS::EC2::AvailabilityZone::Name
     Default: us-east-1a
@@ -31,10 +37,20 @@ Resources:
     Properties:
       Domain: vpc
       InstanceId: !Ref mcServerInstance
-  mcServerInstance:
+  mcServerInstanceRole:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: 
+        - GetMCBucket
+  mcServerInstanceFresh:
     Type: AWS::EC2::Instance
+    Conditions:
+      FreshInstall: !Equals
+        - !Ref LaunchScript
+        - fresh
     Properties:
       AvailabilityZone: !Ref AvailabilityZone
+      IamInstanceProfile: !Ref mcServerInstanceRole
       ImageId: !Ref ImageId
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
@@ -42,16 +58,33 @@ Resources:
       SubnetId: !Ref mcServerSubnet
       UserData:
         !Base64 |
-        #!/bin/bash
-        sudo yum install java-1.8.0-openjdk -y
-        sudo apt install wget -y
-        mkdir /mcServer
-        sudo mount -U 4c23fc44-86f8-4df1-ba7c-40a6995e9b95 /mcServer
-        cd /mcServer
-        wget https://launcher.mojang.com/v1/objects/1b557e7b033b583cd9f66746b7a9ab1ec1673ced/server.jar
-        mv server.jar minecraft_server.1.16.5.jar
-        echo "eula=true" > eula.txt
-        sudo java -Xmx750M -Xms750M -jar minecraft_server.1.16.5.jar nogui &
+        aws s3 cp s3://bootstrap32415/bootstrap.tar /tmp
+        tar -xf /tmp/bootstrap.tar
+        sudo bash /tmp/freshServerInstall.sh
+      Volumes:
+      - 
+        Device: "/dev/sdh"
+        VolumeId: "vol-09bed426a2dccafb1"
+  mcServerInstanceCurrent:
+    Type: AWS::EC2::Instance
+    Conditions:
+      FreshInstall: !Equals
+        - !Ref LaunchScript
+        - current
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      IamInstanceProfile: !Ref mcServerInstanceRole
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroupIds: ["sg-08dafcb6cb310ee66"]
+      SubnetId: !Ref mcServerSubnet
+      UserData:
+        !Base64 |
+        aws s3 cp s3://bootstrap32415/bootstrap.tar /tmp
+        tar -xf /tmp/bootstrap.tar
+        sudo bash /tmp/currentServerInstall.sh
+
       Volumes:
       - 
         Device: "/dev/sdh"
