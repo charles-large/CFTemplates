@@ -24,7 +24,14 @@ Parameters:
     Default: us-east-1a
   KeyName:
     Type: String
-    Default: "Deploy" 
+    Default: "Deploy"
+Conditions:
+  FreshInstall: !Equals
+    - !Ref LaunchScript
+    - fresh
+  CurrentInstall: !Equals
+    - !Ref LaunchScript
+    - current 
 Resources:
   mcServerSubnet:
     Type: AWS::EC2::Subnet
@@ -43,12 +50,9 @@ Resources:
     Properties:
       Roles: 
         - GetMCBucket
-  mcServerInstanceFresh:
+  mcServerInstance:
     Type: AWS::EC2::Instance
-    Conditions:
-      FreshInstall: !Equals
-        - !Ref LaunchScript
-        - fresh
+    Condition: FreshInstall
     Properties:
       AvailabilityZone: !Ref AvailabilityZone
       IamInstanceProfile: !Ref mcServerInstanceRole
@@ -59,19 +63,19 @@ Resources:
       SubnetId: !Ref mcServerSubnet
       UserData:
         !Base64 |
+        #!/bin/bash
         aws s3 cp s3://bootstrap32415/bootstrap.tar /tmp
-        tar -xf /tmp/bootstrap.tar
-        sudo bash /tmp/freshServerInstall.sh
+        tar -xf /tmp/bootstrap.tar -C /tmp
+        ./tmp/freshServerInstall.sh
+        rm -f /tmp/*.sh
+        rm -rf /tmp/*.tar
       Volumes:
       - 
         Device: "/dev/sdh"
         VolumeId: "vol-09bed426a2dccafb1"
   mcServerInstanceCurrent:
     Type: AWS::EC2::Instance
-    Conditions:
-      FreshInstall: !Equals
-        - !Ref LaunchScript
-        - current
+    Condition: CurrentInstall
     Properties:
       AvailabilityZone: !Ref AvailabilityZone
       IamInstanceProfile: !Ref mcServerInstanceRole
@@ -82,9 +86,12 @@ Resources:
       SubnetId: !Ref mcServerSubnet
       UserData:
         !Base64 |
+        #!/bin/bash
         aws s3 cp s3://bootstrap32415/bootstrap.tar /tmp
-        tar -xf /tmp/bootstrap.tar
-        sudo bash /tmp/currentServerInstall.sh
+        tar -xf /tmp/bootstrap.tar -C /tmp
+        ./tmp/currentServerInstall.sh
+        rm -f /tmp/*.sh
+        rm -rf /tmp/*.tar
 
       Volumes:
       - 
