@@ -73,7 +73,7 @@ Resources:
       - 
         Device: "/dev/sdh"
         VolumeId: "vol-09bed426a2dccafb1"
-  mcServerInstanceCurrent:
+  mcServerInstance:
     Type: AWS::EC2::Instance
     Condition: CurrentInstall
     Properties:
@@ -101,6 +101,8 @@ Outputs:
   ServerIP:
     Description: IP address of the server provisioned
     Value: !GetAtt mcServerInstance.PublicIp
+
+
     
 
 
